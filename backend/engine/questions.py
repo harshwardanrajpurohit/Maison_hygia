@@ -4,10 +4,16 @@ from backend.models import Question, UserProfile, Intent
 
 QUESTIONS_DB = [
     Question(
-        id="q_budget",
-        text="What's your budget for this?",
-        options=["Affordable ($)", "Mid-range ($$)", "Premium ($$$)"],
-        dimension="budget"
+        id="q_goal",
+        text="What is your main skin concern or wellness goal?",
+        options=["Dryness & Hydration", "Dullness & Glow", "Fine lines & Aging", "Sensitivity & Calming", "Sleep & Relaxation"],
+        dimension="primary_goal"
+    ),
+    Question(
+        id="q_moment",
+        text="When do you want to do this?",
+        options=["Morning", "Evening", "Anytime"],
+        dimension="routine_time"
     ),
     Question(
         id="q_complexity",
@@ -16,10 +22,10 @@ QUESTIONS_DB = [
         dimension="complexity"
     ),
     Question(
-        id="q_moment",
-        text="When do you want to do this?",
-        options=["Morning", "Evening", "Anytime"],
-        dimension="ritual_moment"
+        id="q_budget",
+        text="What's your budget for this?",
+        options=["Affordable ($)", "Mid-range ($$)", "Premium ($$$)"],
+        dimension="budget"
     ),
     Question(
         id="q_fragrance",
@@ -32,6 +38,12 @@ QUESTIONS_DB = [
         text="Are you looking for skincare, nutrition, or both?",
         options=["Skincare", "Nutrition / Snacks", "Both"],
         dimension="category"
+    ),
+    Question(
+        id="q_lifestyle",
+        text="What best describes your current lifestyle or situation?",
+        options=["Busy & Stressed", "Active & Outdoors", "Mostly Indoors", "Relaxed"],
+        dimension="lifestyle"
     )
 ]
 
@@ -43,12 +55,21 @@ def select_questions(intent: Intent, user_profile: UserProfile, top_n: int = 1) 
     
     # Determine what we already know to avoid asking redundant questions
     resolved_dims = set()
-    if intent.budget or user_profile.budget: resolved_dims.add("budget")
-    if intent.complexity or user_profile.complexity_tolerance: resolved_dims.add("complexity")
-    if intent.routine_time or user_profile.ritual_moment: resolved_dims.add("ritual_moment")
-    if "fragrance_level" in intent.preferences or "fragrance_level" in user_profile.sensory_preferences: 
+    if intent.primary_goal or user_profile.primary_goal or user_profile.concerns or intent.concerns:
+        resolved_dims.add("primary_goal")
+    if intent.budget or user_profile.budget:
+        resolved_dims.add("budget")
+    if intent.complexity or user_profile.complexity_tolerance:
+        resolved_dims.add("complexity")
+    if intent.routine_time or user_profile.preferred_routine_time or user_profile.ritual_moment:
+        resolved_dims.add("routine_time")
+        resolved_dims.add("ritual_moment")
+    if "fragrance_level" in intent.preferences or (user_profile.sensory_preferences and "fragrance_level" in user_profile.sensory_preferences): 
         resolved_dims.add("fragrance_level")
-    if intent.category_preference: resolved_dims.add("category")
+    if intent.category_preference:
+        resolved_dims.add("category")
+    if intent.lifestyle or user_profile.lifestyle:
+        resolved_dims.add("lifestyle")
     
     for q in QUESTIONS_DB:
         if q.dimension in resolved_dims:
@@ -69,12 +90,16 @@ def select_questions(intent: Intent, user_profile: UserProfile, top_n: int = 1) 
         utility = info_gain - lambda_effort * 1.0
         
         # Hardcoded priorities to enforce conversational flow
-        if q.dimension == "ritual_moment":
-            utility += 5.0 # Highest priority
+        if q.dimension == "primary_goal":
+            utility += 8.0 # Highest priority if goal/concern is missing
+        elif q.dimension in ("routine_time", "ritual_moment"):
+            utility += 5.0 # Second highest priority
         elif q.dimension == "complexity":
-            utility += 4.0 # Second highest priority
+            utility += 4.0 # Third highest priority
         elif q.dimension == "budget":
             utility -= 2.0 # Deprioritize budget
+        elif q.dimension == "lifestyle":
+            utility += 3.0 # Important context, but after goal/time
             
         q_copy = q.copy()
         q_copy.information_gain_score = utility

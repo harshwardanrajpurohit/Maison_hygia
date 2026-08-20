@@ -57,7 +57,7 @@ def analyze_and_normalize(
 
 Output ONLY a JSON object with these fields:
 - "normalized_english": string — A clean, natural English translation/interpretation of the user's message. Preserve the EXACT meaning and all details. If already English, keep it as-is.
-- "detected_language": string — One of: "english", "hindi", "hinglish", "marathi", "tamil", "telugu", "bengali", "gujarati", "kannada", "malayalam", "punjabi", or "{language}_english_mix" for mixed (e.g. "marathi_english_mix").
+- "detected_language": string — One of: "english", "hindi", "hinglish", "marathi", "tamil", "telugu", "bengali", "gujarati", "kannada", "malayalam", "punjabi", or "<language>_english_mix" for mixed (e.g. "marathi_english_mix").
 - "detected_script": string — "latin", "devanagari", "tamil_script", "mixed", etc.
 - "is_code_switched": boolean — true if the user mixed two or more languages in a single message
 - "communication_style": string — "casual" or "formal" based on the tone (slang like "yaar", abbreviations = casual)

@@ -187,23 +187,27 @@ class ConversationManager:
                 "is_complete": False
             }
 
-        # Only ask questions if we have a primary goal and need more info to build a routine.
-        if (not state.user_profile.primary_goal) or intent.missing_information:
-            state.state = "CLARIFICATION"
-            
+        # ── STEP 4: Three-Question Discovery Framework ───────────────────
+        if state.questions_asked_count < 3 and not state.discovery_complete:
             questions = select_questions(intent, state.user_profile, top_n=1)
             if questions:
+                state.state = "DISCOVERY"
                 q = questions[0]
                 from backend.engine.generation import generate_question_response
                 adaptive_question = generate_question_response(q.text, language_context)
                 
-                # Add a brief intro if needed, or just ask the question directly
                 if language_context and language_context.detected_language == "english":
-                    response = f"Sure, I can help with that! Just a quick question first:\n\n**{adaptive_question}**"
+                    if state.questions_asked_count == 0:
+                        response = f"Absolutely. To make sure I suggest the right routine for you, I have a few quick questions.\n\n**{adaptive_question}**"
+                    elif state.questions_asked_count == 1:
+                        response = f"Got it. That helps me understand your needs better.\n\n**{adaptive_question}**"
+                    elif state.questions_asked_count == 2:
+                        response = f"Thanks. Just one last question:\n\n**{adaptive_question}**"
                 else:
                     response = f"**{adaptive_question}**"
                 
                 state.history.append({"role": "assistant", "content": response})
+                state.questions_asked_count += 1
                 
                 return {
                     "response": response,
@@ -213,6 +217,10 @@ class ConversationManager:
                     "developer_data": state.developer_data,
                     "is_complete": False
                 }
+            else:
+                state.discovery_complete = True
+        else:
+            state.discovery_complete = True
 
         # ── STEP 5: Generate Recommendation ─────────────────────────
         return self._generate_recommendation(state, None, visual_observations)

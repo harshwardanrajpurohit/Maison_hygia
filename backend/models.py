@@ -48,6 +48,7 @@ class Intent(BaseModel):
     budget: Optional[str] = None
     complexity: Optional[str] = None # e.g. "simple", "comprehensive"
     category_preference: Optional[str] = None
+    lifestyle: Optional[str] = None
     medical_risk: bool = False
     missing_information: List[str] = []
     confidence_scores: Dict[str, float] = {}
@@ -63,6 +64,7 @@ class UserProfile(BaseModel):
     preferred_routine_time: Optional[str] = None
     budget: Optional[str] = None
     complexity_tolerance: Optional[str] = None
+    lifestyle: Optional[str] = None
     sensory_preferences: Dict[str, str] = {}
     liked_products: List[str] = []
     disliked_products: List[str] = []
@@ -114,3 +116,5 @@ class ConversationState(BaseModel):
     safety_status: str = "SAFE" # SAFE, MEDICAL_RISK
     developer_data: Dict[str, Any] = {} # For the debug panel
     language_context: LanguageContext = Field(default_factory=LanguageContext)
+    questions_asked_count: int = 0
+    discovery_complete: bool = False
